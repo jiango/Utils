@@ -90,11 +90,24 @@ std::string Path::clean(std::string& path)
 
 std::wstring Path::baseName(const std::wstring& path)
 {
-	std::wstring name;
-	size_t n = path.rfind(L"\\");
-	if (n != std::string::npos) {
-		name = path.substr(n + 1, path.length() - n);
+	std::wstring name = path;
+
+	if (name.empty())
+		return L".";
+
+	if (name[name.length() - 1] == L'/' ||
+		name[name.length() - 1] == L'\\') {
+		name = name.substr(0, name.length() - 1);
 	}
+
+	size_t n = name.rfind(L"\\");
+	if (n != std::string::npos) {
+		name = name.substr(n + 1, name.length() - n);
+	}
+
+	if (name.empty())
+		return L"\\";
+
 	return name;
 }
 
