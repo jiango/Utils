@@ -2,7 +2,7 @@
 #include <stdarg.h>
 #include <strstream>
 #include <windows.h>
-#include "Convert.h"
+#include "encode.h"
 #include "Path.h"
 #include "defer.h"
 
@@ -34,7 +34,7 @@ void Log::initLog(log_type type, const std::wstring& logName, const std::wstring
 		wchar_t tmp[100] = { 0 };
 		wsprintf(tmp, L"%s-%04d-%02d-%02d.log", logName.c_str(), now_time.tm_year + 1900, now_time.tm_mon + 1, now_time.tm_mday);
 
-		std::string path = Convert::w2a(Path::join(logpath.c_str(), tmp));
+		std::string path = Encode::w2a(Path::join(logpath.c_str(), tmp));
 		m_file.open(path, std::ios::app);
 	}
 	else if (type == log2_output)
@@ -134,7 +134,7 @@ void Log::writeProc()
 std::string Log::formatLogW(const std::wstring& str)
 {
 	std::ostrstream out;
-	std::string tmp = Convert::w2a(str);
+	std::string tmp = Encode::w2a(str);
 	char buf[100] = { 0 };
 	struct tm now;
 	time_t t = time(0);
