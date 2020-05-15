@@ -2,11 +2,17 @@
 #include <Windows.h>
 #include <Shlobj.h>
 
+HMODULE GetThisModuleHandle()
+{
+	HMODULE hModule = NULL;
+	return GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCTSTR)GetThisModuleHandle, &hModule) ? hModule : NULL;
+}
+
 std::wstring Path::getcwd()
 {
 #ifdef WIN32
 	wchar_t szAppPath[MAX_PATH];
-	GetModuleFileName(NULL, szAppPath, MAX_PATH);
+	GetModuleFileName(GetThisModuleHandle(), szAppPath, MAX_PATH);
 	(wcsrchr(szAppPath, L'\\'))[1] = 0;
 	return szAppPath;
 #else
