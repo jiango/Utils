@@ -28,14 +28,11 @@ void Log::initLog(log_type type, const std::wstring& logName, const std::wstring
 	{
 		std::vector<std::wstring> old_logs;
 
-		time_t time_seconds = time(0);	
-		struct tm now_time;	
-		localtime_s(&now_time, &time_seconds);	
-		wchar_t tmp[100] = { 0 };
-		wsprintf(tmp, L"%s-%04d-%02d-%02d.log", logName.c_str(), now_time.tm_year + 1900, now_time.tm_mon + 1, now_time.tm_mday);
+		m_logName = logName;
+		m_logPath = logpath;
 
-		std::string path = Encode::w2a(Path::join(logpath.c_str(), tmp));
-		m_file.open(path, std::ios::app);
+		m_logFullPath = makeFileName();
+		m_file.open(m_logFullPath, std::ios::app);
 	}
 	else if (type == log2_output)
 	{
@@ -45,12 +42,14 @@ void Log::initLog(log_type type, const std::wstring& logName, const std::wstring
 		AllocConsole();
 	}
 
-	m_thread = std::thread(std::bind(&Log::writeProc, this));
+	m_thread = std::thread(std::bind(&Log::writeProc, shared_from_this()));
 }
 
-void Log::writeLog(wchar_t* format, ...)
+void Log::writeLog(const wchar_t* format, ...)
 {
-	LOCKLOCK;
+	if (m_stop) {
+		return;
+	}
 
 	va_list args;
 	int len;
@@ -67,9 +66,11 @@ void Log::writeLog(wchar_t* format, ...)
 	va_end(args);
 }
 
-void Log::writeLog(char* format, ...)
+void Log::writeLog(const char* format, ...)
 {
-	LOCKLOCK;
+	if (m_stop) {
+		return;
+	}
 
 	va_list args;
 	int len;
@@ -101,16 +102,17 @@ LogPtr& Log::instance()
 	return self;
 }
 
-void Log::writeProc()
+void Log::writeProc(std::weak_ptr<Log> self)
 {
-	while (!m_stop)
+	std::shared_ptr<Log> shared = self.lock();
+	while (shared && !shared->m_stop)
 	{
-		std::string str = m_que.take();
-		if (str.empty() && m_stop) {
+		std::string str = shared->m_que.take();
+		if (str.empty() && shared->m_stop) {
 			break;
 		}
 
-		switch (m_type)
+		switch (shared->m_type)
 		{
 		case Log::log2_console:
 			WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), str.c_str(), str.size(), NULL, NULL);
@@ -119,10 +121,17 @@ void Log::writeProc()
 			OutputDebugStringA(str.c_str());
 			break;
 		case Log::log2_file:
-			if (m_file.is_open())
+			if (shared->m_file.is_open())
 			{
-				m_file.write(str.c_str(), str.length());
-				m_file.flush();
+				shared->m_file.write(str.c_str(), str.length());
+				shared->m_file.flush();
+
+				std::string path = shared->makeFileName();
+				if (path != shared->m_logFullPath) {
+					shared->m_file.close();
+					shared->m_logFullPath = path;
+					shared->m_file.open(shared->m_logFullPath, std::ios::app);
+				}
 			}
 			break;
 		default:
@@ -159,4 +168,16 @@ std::string Log::formatLogA(const std::string& str)
 	tmp = out.str();
 	delete out.str();
 	return tmp;
+}
+
+std::string Log::makeFileName()
+{
+	time_t time_seconds = time(0);
+	struct tm now_time;
+	localtime_s(&now_time, &time_seconds);
+	wchar_t tmp[100] = { 0 };
+	wsprintf(tmp, L"%s-%04d-%02d-%02d.log", m_logName.c_str(), now_time.tm_year + 1900, now_time.tm_mon + 1, now_time.tm_mday);
+
+	std::string path = Encode::w2a(Path::join(m_logPath.c_str(), tmp));
+	return path;
 }

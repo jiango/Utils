@@ -10,7 +10,6 @@
 
 #define LOG_FILE_NAME  "xyy.log"
 
-#define LOCKLOCK std::lock_guard<std::mutex> lock(m_mutex)
 #define LOG Log::instance()
 
 class Log;
@@ -31,21 +30,24 @@ public:
 	~Log();
 	static LogPtr& instance();
 	void initLog(log_type type, const std::wstring& logName, const std::wstring& logpath);
-	void writeLog(wchar_t* format, ...);
-	void writeLog(char* format, ...);
+	void writeLog(const wchar_t* format, ...);
+	void writeLog(const char* format, ...);
 	void stop();
 
 private:
 	Log();
-	void writeProc();
+	static void writeProc(std::weak_ptr<Log> self);
 	std::string formatLogW(const std::wstring& str);
 	std::string formatLogA(const std::string& str);
+	std::string makeFileName();
 
 private:
 	log_type m_type;
 	std::atomic<bool> m_stop;
 	std::ofstream m_file;
 	BlockingQueue<std::string> m_que;
-	std::mutex m_mutex;
+	std::wstring m_logName;
+	std::wstring m_logPath;
+	std::string m_logFullPath;
 	std::thread m_thread;
 };
