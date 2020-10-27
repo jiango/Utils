@@ -5,6 +5,7 @@
 #include <Psapi.h>
 #include <TlHelp32.h>
 #include <commdlg.h>
+#include <direct.h>
 #pragma comment(lib, "Psapi.lib")
 #endif
 
@@ -36,7 +37,23 @@ bool Os::mkdir(const wchar_t* dirname)
 {
 #ifdef _WIN32
 	int en = _wmkdir(dirname);
-	if (en == 0 || en == EEXIST) {
+	if (en == 0)
+		return true;
+	if (en == -1 && errno == EEXIST) {
+		return true;
+	}
+	return false;
+#else
+#endif
+}
+
+bool Os::mkdir(const char* dirname)
+{
+#ifdef _WIN32
+	int en = _mkdir(dirname);
+	if (en == 0)
+		return true;
+	if (en == -1 && errno == EEXIST) {
 		return true;
 	}
 	return false;
@@ -257,5 +274,54 @@ std::string Os::system(const char* cmd)
 		ret += buffer;
 	}
 	CloseHandle(hRead);
+	return ret;
+}
+
+bool Os::isFileExist(const wchar_t* path)
+{
+	DWORD ftyp = GetFileAttributes(path);
+	if (ftyp == INVALID_FILE_ATTRIBUTES) {
+		return false;
+	}
+	return true;
+}
+
+bool Os::isFileExist(const char* path)
+{
+	DWORD ftyp = GetFileAttributesA(path);
+	if (ftyp == INVALID_FILE_ATTRIBUTES) {
+		return false;
+	}
+	return true;
+}
+
+unsigned long Os::fileSize(const char* path)
+{
+	unsigned long size = 0;
+	HANDLE handle = CreateFileA(path, FILE_READ_EA, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	if (handle != INVALID_HANDLE_VALUE) {
+		size = GetFileSize(handle, NULL);
+		CloseHandle(handle);
+	}
+	return size;
+}
+
+std::string Os::localIP()
+{
+	std::string ret;
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) == SOCKET_ERROR) {
+		return ret;
+	}
+
+	int nLen = 256;
+	char hostname[20];
+	gethostname(hostname, nLen);
+	hostent *pHost = gethostbyname(hostname);
+	LPSTR lpAddr = pHost->h_addr_list[0];
+	struct in_addr inAddr;
+	memmove(&inAddr, lpAddr, 4);
+	ret = inet_ntoa(inAddr);
+
 	return ret;
 }

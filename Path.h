@@ -8,7 +8,9 @@ public:
 	~Path() = delete;
 
 	static std::wstring getcwd();
+	static std::string getcwdA();
 	static std::wstring getappdir();
+	static std::wstring getProgramDir();
 	static std::wstring join(const wchar_t* l, const wchar_t* r);
 	static std::string join(const char* l, const char* r);
 	static std::wstring clean(std::wstring& path);

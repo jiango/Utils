@@ -46,6 +46,18 @@ std::wstring Encode::a2w(const std::string& str)
 	return buf;
 }
 
+std::string Encode::utf82a(const std::string& str)
+{
+	std::wstring s = Encode::utf82w(str);
+	return Encode::w2a(s);
+}
+
+std::string Encode::a2utf8(const std::string& str)
+{
+	std::wstring s = Encode::a2w(str);
+	return Encode::w2utf8(s);
+}
+
 std::string Encode::b64_encode(const char* src, int src_len)
 {
 	const char EncodeTable[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -61,7 +73,8 @@ std::string Encode::b64_encode(const char* src, int src_len)
 		strEncode += EncodeTable[((Tmp[1] << 4) | (Tmp[2] >> 4)) & 0x3F];
 		strEncode += EncodeTable[((Tmp[2] << 2) | (Tmp[3] >> 6)) & 0x3F];
 		strEncode += EncodeTable[Tmp[3] & 0x3F];
-		if (LineLength += 4, LineLength == 76) { strEncode += "\r\n"; LineLength = 0; }
+		// 
+		//if (LineLength += 4, LineLength == 76) { strEncode += "\r\n"; LineLength = 0; }
 	}
 
 	int Mod = src_len % 3;

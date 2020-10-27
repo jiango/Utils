@@ -19,6 +19,32 @@ std::wstring Path::getcwd()
 #endif
 }
 
+std::string Path::getcwdA()
+{
+#ifdef WIN32
+	char szAppPath[MAX_PATH];
+	GetModuleFileNameA(GetThisModuleHandle(), szAppPath, MAX_PATH);
+	(strrchr(szAppPath, L'\\'))[1] = 0;
+	return szAppPath;
+#else
+#endif
+}
+
+std::wstring Path::getProgramDir()
+{
+#ifdef WIN32
+	wchar_t szPath[MAX_PATH] = { 0 };
+	BOOL bWow64 = FALSE;
+    IsWow64Process(GetCurrentProcess(),&bWow64);
+	if (bWow64)
+		SHGetFolderPath(NULL, CSIDL_PROGRAM_FILESX86, NULL, SHGFP_TYPE_CURRENT, szPath);
+	else 
+		SHGetFolderPath(NULL, CSIDL_PROGRAM_FILES, NULL, SHGFP_TYPE_CURRENT, szPath);
+	return szPath;
+#else
+#endif
+}
+
 std::wstring Path::getappdir()
 {
 #ifdef WIN32
